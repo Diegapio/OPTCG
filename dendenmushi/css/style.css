@@ -715,3 +715,22 @@ body {
 #loader-wrapper, .loader, #loading {
     display: none !important;
 }
+
+/* Forzar la ocultación del cargando */
+#loader-wrapper, 
+#loading-overlay, 
+.loading-screen, 
+#loader {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+
+#loader-wrapper {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important; /* Esto permite que el clic pase a través */
+}
