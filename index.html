@@ -2,7 +2,6 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8"/>
-  <base href="/OPTCG/">
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Den Den Mushi — One Piece TCG Deck Builder</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
@@ -45,8 +44,6 @@
 
   <!-- SECCIÓN: BUILDER -->
   <section class="section active" id="section-builder">
-
-    <!-- Hero -->
     <div class="hero">
       <div class="hero-text">
         <p class="hero-eyebrow">✦ Inteligencia Artificial para One Piece TCG ✦</p>
@@ -61,11 +58,10 @@
       </div>
     </div>
 
-    <!-- Búsqueda de líderes -->
     <div class="container">
       <div class="section-header">
         <h2 class="section-title">Selecciona tu Líder</h2>
-        <p class="section-sub">3.330 cartas reales · 234 líderes disponibles · Datos actualizados 2026</p>
+        <p class="section-sub" id="dbInfo">Cargando base de datos…</p>
       </div>
 
       <div class="search-box">
@@ -86,11 +82,9 @@
         </div>
       </div>
 
-      <!-- Grid de líderes -->
       <div class="leaders-count" id="leadersCount"></div>
       <div class="leaders-grid" id="leadersGrid" role="list" aria-label="Líderes disponibles"></div>
 
-      <!-- Panel de generación -->
       <div class="gen-panel" id="genPanel" hidden>
         <div class="gen-header">
           <div class="gen-leader-info" id="genLeaderInfo"></div>
@@ -99,7 +93,6 @@
           </button>
         </div>
 
-        <!-- Barra de progreso -->
         <div class="progress-wrap" id="progressWrap" hidden>
           <div class="progress-steps" id="progressSteps">
             <div class="pstep active" data-i="0"><div class="pdot"></div><span>Analizando líder</span></div>
@@ -111,43 +104,30 @@
           <div class="pbar"><div class="pbar-fill" id="pbarFill"></div></div>
         </div>
 
-        <!-- Resultado -->
         <div class="deck-result" id="deckResult" hidden>
-
-          <!-- Stats rápidas -->
           <div class="deck-stats" id="deckStats"></div>
-
-          <!-- Dos columnas -->
           <div class="deck-cols">
-            <!-- Lista -->
             <div class="deck-col">
               <div class="col-head">📋 Lista del Mazo <span class="col-badge" id="cardCount">0</span></div>
               <div class="deck-list" id="deckList"></div>
             </div>
-
-            <!-- Análisis -->
             <div class="deck-col">
               <div class="col-head">📊 Análisis IA</div>
               <div class="analysis-box" id="analysisBox"></div>
-
               <div class="chart-section">
                 <div class="chart-title">Curva de Coste</div>
                 <div class="cost-chart" id="costChart"></div>
               </div>
-
               <div class="chart-section">
                 <div class="chart-title">Distribución de Colores</div>
                 <div class="color-chart" id="colorChart"></div>
               </div>
-
               <div class="chart-section">
                 <div class="chart-title">💰 Coste del Mazo (CardMarket)</div>
                 <div class="price-box" id="priceBox"></div>
               </div>
             </div>
           </div>
-
-          <!-- Acciones -->
           <div class="deck-actions">
             <button class="btn-action" id="btnCopy">📋 Copiar lista</button>
             <button class="btn-action" id="btnExportJSON">💾 Exportar JSON</button>
@@ -164,9 +144,8 @@
     <div class="container">
       <div class="section-header">
         <h2 class="section-title">Explorar Cartas</h2>
-        <p class="section-sub">Navega por las 3.330 cartas con precios de CardMarket en tiempo real</p>
+        <p class="section-sub">Navega por todas las cartas con precios de CardMarket</p>
       </div>
-
       <div class="exp-filters">
         <input id="expSearch" type="search" placeholder="Buscar carta…" class="exp-input" aria-label="Buscar carta"/>
         <select id="expType" class="exp-select" aria-label="Tipo">
@@ -197,7 +176,6 @@
           <option value="cost_asc">Coste ↑</option>
         </select>
       </div>
-
       <div class="exp-info" id="expInfo"></div>
       <div class="exp-grid" id="expGrid" role="list" aria-label="Cartas"></div>
       <div class="load-more-wrap">
@@ -217,32 +195,32 @@
         <div class="about-card">
           <div class="about-icon">🧠</div>
           <h3>Algoritmo IA</h3>
-          <p>Motor propio que analiza compatibilidad de colores, curva de coste óptima (la "regla 4-2"), contadores mínimos y sinergias por palabras clave (Rush, Blocker, Banish, DON!!…).</p>
+          <p>Motor propio que analiza compatibilidad de colores, curva de coste óptima, contadores mínimos y sinergias por palabras clave (Rush, Blocker, Banish, DON!!…).</p>
         </div>
         <div class="about-card">
           <div class="about-icon">🃏</div>
           <h3>Base de datos real</h3>
-          <p>3.330 cartas de OP-01 a OP-15 + Extra Boosters y Promos. Datos scrapeados directamente de CardMarket con precios de mercado actualizados.</p>
+          <p>Cartas de OP-01 a OP-15 + Extra Boosters y Promos. Datos con precios de mercado de CardMarket actualizados.</p>
         </div>
         <div class="about-card">
           <div class="about-icon">💰</div>
           <h3>Precios CardMarket</h3>
-          <p>Cada carta muestra su precio de mercado. El mazo generado calcula el coste total estimado para que sepas cuánto te costará construirlo.</p>
+          <p>Cada carta muestra su precio de mercado. El mazo generado calcula el coste total estimado.</p>
         </div>
         <div class="about-card">
           <div class="about-icon">📊</div>
           <h3>Win Rate estimado</h3>
-          <p>Score calculado algorítmicamente según poder, contador, efectos y sinergias. Permite comparar qué cartas aportan más valor al mazo.</p>
+          <p>Score calculado algorítmicamente según poder, contador, efectos y sinergias.</p>
         </div>
         <div class="about-card">
           <div class="about-icon">🚀</div>
           <h3>100% estático</h3>
-          <p>Sin backend, sin servidor propio. HTML + CSS + JS puro desplegado en Netlify. Gratuito para siempre, sin login, accesible para cualquier usuario.</p>
+          <p>Sin backend, sin servidor propio. HTML + CSS + JS puro. Gratuito, sin login.</p>
         </div>
         <div class="about-card">
           <div class="about-icon">🎓</div>
           <h3>Proyecto TFG</h3>
-          <p>Desarrollado como Trabajo de Fin de Grado. Combina consumo de APIs, algoritmos de optimización y diseño de experiencia de usuario.</p>
+          <p>Desarrollado como Trabajo de Fin de Grado. Combina APIs, algoritmos de optimización y UX.</p>
         </div>
       </div>
     </div>
@@ -257,24 +235,15 @@
   <!-- TOAST -->
   <div class="toast" id="toast" role="alert" aria-live="polite" hidden></div>
 
-  <!-- Pantalla de carga inicial -->
-  <div id="appLoader" style="
-    position:fixed;inset:0;z-index:9999;
-    background:linear-gradient(135deg,#0a0e1a 0%,#0d1b2a 100%);
-    display:flex;flex-direction:column;align-items:center;justify-content:center;
-    gap:1.2rem;transition:opacity .4s ease;
-  ">
-    <div style="font-size:2.8rem;animation:spin 1.4s linear infinite">☠</div>
-    <div style="font-family:'Nunito',sans-serif;color:#a0b4cc;font-size:1rem;letter-spacing:.05em">
-      Cargando cartas…
+  <!-- PANTALLA DE CARGA -->
+  <div id="appLoader">
+    <div class="loader-skull">☠</div>
+    <div class="loader-text">Cargando cartas…</div>
+    <div class="loader-bar-wrap">
+      <div id="loaderBar" class="loader-bar-fill"></div>
     </div>
-    <div style="width:180px;height:4px;background:#1a2a3a;border-radius:4px;overflow:hidden">
-      <div id="loaderBar" style="height:100%;width:0%;background:linear-gradient(90deg,#e74c3c,#8e44ad);border-radius:4px;transition:width .3s ease"></div>
-    </div>
-    <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
   </div>
 
-  <!-- Scripts: sin cartas.js (ahora se carga con fetch en app.js) -->
   <script src="js/algorithm.js"></script>
   <script src="js/app.js"></script>
 </body>
