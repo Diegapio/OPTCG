@@ -88,28 +88,29 @@
   /* ──────────────────────────────────────────
      INICIALIZACIÓN
   ────────────────────────────────────────── */
-  async function init() {
-    // Cargar cartas de forma lazy (no bloqueante)
-    const loaderBar = document.getElementById('loaderBar');
-    const appLoader = document.getElementById('appLoader');
-    if (loaderBar) loaderBar.style.width = '30%';
-    try {
-      const res = await fetch('js/cartas.json');
-      if (!res.ok) throw new Error('No se pudo cargar cartas.json');
-      if (loaderBar) loaderBar.style.width = '70%';
-      const CARDS_DB = await res.json();
-      if (loaderBar) loaderBar.style.width = '100%';
-      S.leaders  = CARDS_DB.filter(c => c.type === 'Leader');
-      S.allCards = CARDS_DB;
-    } catch(e) {
-      console.error('Error cargando cartas:', e);
-      document.getElementById('leadersGrid').innerHTML =
-        '<div class="empty-state"><div>⚠️</div><p>No se pudieron cargar las cartas. Recarga la página.</p></div>';
-      if (appLoader) { appLoader.style.opacity='0'; setTimeout(()=>appLoader.remove(),400); }
-      return;
-    }
+async function init() {
+  try {
+      const response = await fetch('./cartas.json');
+      if (!response.ok) throw new Error("No se pudo cargar cartas.json");
+      const data = await response.json();
 
-    // Estrellas decorativas
+      S.allCards = data;
+      S.leaders = data.filter(c => c.type === 'Leader');
+
+      // Renderizamos la interfaz
+      renderLeadersGrid();
+      
+      // --- AQUÍ ESTÁ EL TRUCO ---
+      // Forzamos la desaparición del cargando
+      hideLoader(); 
+
+  } catch (err) {
+      console.error("Error en init:", err);
+      // Si hay error, también lo quitamos para que el usuario vea qué pasa
+      hideLoader();
+  }
+
+  // Estrellas decorativas
     const starsEl = document.getElementById('stars');
     for(let i=0;i<55;i++){
       const s=document.createElement('div');

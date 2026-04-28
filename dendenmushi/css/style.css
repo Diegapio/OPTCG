@@ -710,3 +710,8 @@ body {
   .deck-actions { gap:.5rem; }
   .btn-action, .btn-primary { font-size:.75rem; padding:.55rem 1rem; }
 }
+
+/* Esto es una solución de emergencia por si el JS falla */
+#loader-wrapper, .loader, #loading {
+    display: none !important;
+}
