@@ -90,7 +90,7 @@
   ────────────────────────────────────────── */
 async function init() {
  try {
-      const response = await fetch('./cartas.json');
+      const response = await fetch('cartas.json');
       if (!response.ok) throw new Error("No se pudo cargar cartas.json");
       const data = await response.json();
 
