@@ -711,26 +711,15 @@ body {
   .btn-action, .btn-primary { font-size:.75rem; padding:.55rem 1rem; }
 }
 
-/* Esto es una solución de emergencia por si el JS falla */
-#loader-wrapper, .loader, #loading {
-    display: none !important;
-}
-
-/* Forzar la ocultación del cargando */
-#loader-wrapper, 
-#loading-overlay, 
-.loading-screen, 
-#loader {
+/* Hide loading elements */
+#loader-wrapper,
+#loading-overlay,
+.loading-screen,
+#loader,
+.loader,
+#loading {
     display: none !important;
     visibility: hidden !important;
     opacity: 0 !important;
     pointer-events: none !important;
-}
-
-
-#loader-wrapper {
-    display: none !important;
-    opacity: 0 !important;
-    visibility: hidden !important;
-    pointer-events: none !important; /* Esto permite que el clic pase a través */
 }

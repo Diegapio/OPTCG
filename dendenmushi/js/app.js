@@ -99,15 +99,9 @@ async function init() {
 
       // Renderizamos la interfaz
       renderLeadersGrid();
-      
-      // --- AQUÍ ESTÁ EL TRUCO ---
-      // Forzamos la desaparición del cargando
-      hideLoader(); 
 
   } catch (err) {
       console.error("Error en init:", err);
-      // Si hay error, también lo quitamos para que el usuario vea qué pasa
-      hideLoader();
   }
 
   // Estrellas decorativas
