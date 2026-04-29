@@ -8,69 +8,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Nunito:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="css/style.css"/>
-  <style>
-    /* ── Pantalla de carga ───────────────────── */
-    #loadingScreen {
-      position: fixed;
-      inset: 0;
-      z-index: 9999;
-      background: #07111f;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      gap: 1.2rem;
-      transition: opacity .4s ease;
-    }
-    #loadingScreen.fade-out { opacity: 0; pointer-events: none; }
-    .ls-skull {
-      font-size: 3rem;
-      animation: lsBob 1.2s ease-in-out infinite;
-    }
-    .ls-title {
-      font-family: 'Cinzel Decorative', serif;
-      color: #c9970a;
-      font-size: 1.1rem;
-      letter-spacing: .05em;
-    }
-    .ls-sub {
-      color: #7a9ab5;
-      font-size: .85rem;
-      font-family: 'Nunito', sans-serif;
-    }
-    .ls-bar {
-      width: 220px;
-      height: 4px;
-      background: #1a2a3a;
-      border-radius: 4px;
-      overflow: hidden;
-    }
-    .ls-bar-fill {
-      height: 100%;
-      background: linear-gradient(90deg, #c9970a, #f0c040);
-      border-radius: 4px;
-      animation: lsBar 1.6s ease-in-out infinite;
-    }
-    @keyframes lsBob {
-      0%,100% { transform: translateY(0); }
-      50%      { transform: translateY(-8px); }
-    }
-    @keyframes lsBar {
-      0%   { width: 0%; margin-left: 0%; }
-      50%  { width: 60%; margin-left: 20%; }
-      100% { width: 0%; margin-left: 100%; }
-    }
-  </style>
 </head>
 <body>
-
-  <!-- Pantalla de carga (se oculta cuando el JSON termina de cargar) -->
-  <div id="loadingScreen" aria-live="polite" role="status">
-    <div class="ls-skull">☠</div>
-    <div class="ls-title">Den Den Mushi</div>
-    <div class="ls-sub">Cargando base de datos de cartas…</div>
-    <div class="ls-bar"><div class="ls-bar-fill"></div></div>
-  </div>
 
   <!-- Fondo animado -->
   <div class="ocean-bg" aria-hidden="true">
@@ -146,6 +85,7 @@
         </div>
       </div>
 
+      <!-- Grid de líderes -->
       <div class="leaders-count" id="leadersCount"></div>
       <div class="leaders-grid" id="leadersGrid" role="list" aria-label="Líderes disponibles"></div>
 
@@ -158,6 +98,7 @@
           </button>
         </div>
 
+        <!-- Barra de progreso -->
         <div class="progress-wrap" id="progressWrap" hidden>
           <div class="progress-steps" id="progressSteps">
             <div class="pstep active" data-i="0"><div class="pdot"></div><span>Analizando líder</span></div>
@@ -169,30 +110,43 @@
           <div class="pbar"><div class="pbar-fill" id="pbarFill"></div></div>
         </div>
 
+        <!-- Resultado -->
         <div class="deck-result" id="deckResult" hidden>
+
+          <!-- Stats rápidas -->
           <div class="deck-stats" id="deckStats"></div>
+
+          <!-- Dos columnas -->
           <div class="deck-cols">
+            <!-- Lista -->
             <div class="deck-col">
               <div class="col-head">📋 Lista del Mazo <span class="col-badge" id="cardCount">0</span></div>
               <div class="deck-list" id="deckList"></div>
             </div>
+
+            <!-- Análisis -->
             <div class="deck-col">
               <div class="col-head">📊 Análisis IA</div>
               <div class="analysis-box" id="analysisBox"></div>
+
               <div class="chart-section">
                 <div class="chart-title">Curva de Coste</div>
                 <div class="cost-chart" id="costChart"></div>
               </div>
+
               <div class="chart-section">
                 <div class="chart-title">Distribución de Colores</div>
                 <div class="color-chart" id="colorChart"></div>
               </div>
+
               <div class="chart-section">
                 <div class="chart-title">💰 Coste del Mazo (CardMarket)</div>
                 <div class="price-box" id="priceBox"></div>
               </div>
             </div>
           </div>
+
+          <!-- Acciones -->
           <div class="deck-actions">
             <button class="btn-action" id="btnCopy">📋 Copiar lista</button>
             <button class="btn-action" id="btnExportJSON">💾 Exportar JSON</button>
@@ -211,6 +165,7 @@
         <h2 class="section-title">Explorar Cartas</h2>
         <p class="section-sub">Navega por las 3.330 cartas con precios de CardMarket en tiempo real</p>
       </div>
+
       <div class="exp-filters">
         <input id="expSearch" type="search" placeholder="Buscar carta…" class="exp-input" aria-label="Buscar carta"/>
         <select id="expType" class="exp-select" aria-label="Tipo">
@@ -241,6 +196,7 @@
           <option value="cost_asc">Coste ↑</option>
         </select>
       </div>
+
       <div class="exp-info" id="expInfo"></div>
       <div class="exp-grid" id="expGrid" role="list" aria-label="Cartas"></div>
       <div class="load-more-wrap">
@@ -280,7 +236,7 @@
         <div class="about-card">
           <div class="about-icon">🚀</div>
           <h3>100% estático</h3>
-          <p>Sin backend, sin servidor propio. HTML + CSS + JS puro desplegado en Vercel. Gratuito para siempre, sin login, accesible para cualquier usuario.</p>
+          <p>Sin backend, sin servidor propio. HTML + CSS + JS puro desplegado en Netlify. Gratuito para siempre, sin login, accesible para cualquier usuario.</p>
         </div>
         <div class="about-card">
           <div class="about-icon">🎓</div>
@@ -300,7 +256,8 @@
   <!-- TOAST -->
   <div class="toast" id="toast" role="alert" aria-live="polite" hidden></div>
 
-  <!-- Scripts: algorithm primero, luego app (ya no hay cartas.js) -->
+  <!-- Scripts: cartas primero, luego app -->
+  <script src="js/cartas.js"></script>
   <script src="js/algorithm.js"></script>
   <script src="js/app.js"></script>
 </body>
