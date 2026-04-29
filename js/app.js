@@ -86,12 +86,11 @@
     el._t = setTimeout(()=>{ el.hidden=true; }, ms);
   }
 
-  /* ── Pantalla de carga ─────────────────────
+  /* ── Pantalla de carga ───────────────────── */
   function showLoadingScreen() {
     const el = document.getElementById('loadingScreen');
     if (el) el.hidden = false;
   }
-     */
 
   function hideLoadingScreen() {
     const el = document.getElementById('loadingScreen');
@@ -106,8 +105,7 @@
   async function loadCards() {
     showLoadingScreen();
     try {
-      const base = location.pathname.split('/').slice(0,2).join('/');
-      const resp = await fetch(base + '/data/cartas.json');
+      const resp = await fetch('data/cartas.json');
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const data = await resp.json();
       window.CARDS_DB = data;
