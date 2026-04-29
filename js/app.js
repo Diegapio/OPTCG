@@ -1,6 +1,7 @@
 /**
  * app.js — Controlador principal de Den Den Mushi
- * Usa CARDS_DB (desde js/cartas.js) y DeckAlgorithm (desde js/algorithm.js)
+ * Carga cartas desde /data/cartas.json de forma asíncrona
+ * Compatible con Vercel (proyecto estático)
  */
 
 (() => {
@@ -85,26 +86,65 @@
     el._t = setTimeout(()=>{ el.hidden=true; }, ms);
   }
 
+  /* ── Pantalla de carga ───────────────────── */
+  function showLoadingScreen() {
+    const el = document.getElementById('loadingScreen');
+    if (el) el.hidden = false;
+  }
+
+  function hideLoadingScreen() {
+    const el = document.getElementById('loadingScreen');
+    if (!el) return;
+    el.classList.add('fade-out');
+    setTimeout(() => { el.hidden = true; el.classList.remove('fade-out'); }, 400);
+  }
+
+  /* ──────────────────────────────────────────
+     CARGA ASÍNCRONA DE CARTAS
+  ────────────────────────────────────────── */
+  async function loadCards() {
+    showLoadingScreen();
+    try {
+      const resp = await fetch('/data/cartas.json');
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const data = await resp.json();
+      window.CARDS_DB = data;
+      return data;
+    } catch (err) {
+      console.error('Error cargando cartas:', err);
+      const el = document.getElementById('loadingScreen');
+      if (el) {
+        el.innerHTML = `
+          <div class="loading-inner">
+            <div class="loading-icon">⚠️</div>
+            <div class="loading-title">Error al cargar las cartas</div>
+            <div class="loading-sub">Comprueba tu conexión y recarga la página</div>
+            <button onclick="location.reload()" style="margin-top:1.5rem;padding:.6rem 1.8rem;background:var(--gold);color:#000;border:none;border-radius:8px;cursor:pointer;font-weight:700;">
+              🔄 Reintentar
+            </button>
+          </div>`;
+      }
+      throw err;
+    }
+  }
+
   /* ──────────────────────────────────────────
      INICIALIZACIÓN
   ────────────────────────────────────────── */
-async function init() {
- try {
-      const response = await fetch('cartas.json');
-      if (!response.ok) throw new Error("No se pudo cargar cartas.json");
-      const data = await response.json();
+  async function init() {
+    // Cargar cartas antes de nada
+    let cards;
+    try {
+      cards = await loadCards();
+    } catch (e) {
+      return; // Error ya mostrado en pantalla
+    }
 
-      S.allCards = data;
-      S.leaders = data.filter(c => c.type === 'Leader');
+    // Separar líderes del resto
+    S.leaders  = cards.filter(c => c.type === 'Leader');
+    S.allCards = cards;
 
-      // Renderizamos la interfaz
-      renderLeadersGrid();
-
-  } catch (err) {
-      console.error("Error en init:", err);
-  }
-
-  // Estrellas decorativas
+    // Estrellas decorativas
     const starsEl = document.getElementById('stars');
     for(let i=0;i<55;i++){
       const s=document.createElement('div');
@@ -134,12 +174,8 @@ async function init() {
     renderExpGrid(true);
     bindEvents();
 
-    // Ocultar pantalla de carga con fade
-    const _loader = document.getElementById('appLoader');
-    if (_loader) {
-      _loader.style.opacity = '0';
-      setTimeout(() => _loader.remove(), 400);
-    }
+    // Ocultar pantalla de carga — todo listo
+    hideLoadingScreen();
   }
 
   /* ──────────────────────────────────────────
@@ -204,7 +240,6 @@ async function init() {
       </div>`;
     }).join('');
 
-    // Eventos clic y teclado
     grid.querySelectorAll('.leader-item').forEach(el=>{
       el.addEventListener('click', ()=>selectLeader(el.dataset.id));
       el.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' ') selectLeader(el.dataset.id); });
@@ -220,16 +255,13 @@ async function init() {
     S.selectedLeader = leader;
     S.currentDeck = null;
 
-    // Marcar seleccionado en grid
     document.querySelectorAll('.leader-item').forEach(el=>{
       el.classList.toggle('selected', el.dataset.id===id);
     });
 
-    // Mostrar panel
     const panel = document.getElementById('genPanel');
     panel.hidden = false;
 
-    // Info del líder seleccionado
     const colors = DeckAlgorithm.parseColors(leader.color);
     const genInfo = document.getElementById('genLeaderInfo');
     genInfo.innerHTML = `
@@ -244,7 +276,6 @@ async function init() {
         <div class="gli-meta">${esc(leader.id)} · ${esc(leader.color)} · Vida: ${leader.life||'—'} · ${fmtPrice(leader.price)}</div>
       </div>`;
 
-    // Ocultar resultado anterior
     document.getElementById('deckResult').hidden  = true;
     document.getElementById('progressWrap').hidden = true;
 
@@ -260,7 +291,6 @@ async function init() {
     btn.disabled = true;
     document.getElementById('deckResult').hidden = true;
 
-    // Mostrar progress
     const pw = document.getElementById('progressWrap');
     pw.hidden = false;
     resetProgress();
@@ -271,14 +301,12 @@ async function init() {
 
     steps.forEach((s,i)=>{
       setTimeout(()=>{
-        // Marcar anteriores como done
         for(let j=0;j<s;j++) setStep(j,'done');
         setStep(s,'active');
         document.getElementById('pbarFill').style.width = pcts[i]+'%';
       }, delays[i]);
     });
 
-    // Computar mazo mientras se anima
     await sleep(380);
     let result;
     try {
@@ -319,7 +347,6 @@ async function init() {
   function renderResult(result) {
     const { cards, stats, analysis } = result;
 
-    // Stats bar
     document.getElementById('deckStats').innerHTML = `
       <div class="stat"><div class="stat-v">${stats.total}</div><div class="stat-l">Cartas</div></div>
       <div class="stat"><div class="stat-v">${stats.avgCost}</div><div class="stat-l">Coste Medio</div></div>
@@ -330,7 +357,6 @@ async function init() {
     `;
     document.getElementById('cardCount').textContent = stats.total;
 
-    // Lista del mazo
     const sorted = [...cards].sort((a,b)=>{
       const to={Leader:-1,Character:0,Event:1,Stage:2};
       const d=(to[a.type]??0)-(to[b.type]??0);
@@ -349,16 +375,13 @@ async function init() {
       </div>`;
     }).join('');
 
-    // Clics en lista
     document.querySelectorAll('.dentry[data-id]').forEach(el=>{
       el.addEventListener('click', ()=>openModal(el.dataset.id));
       el.addEventListener('keydown', e=>{ if(e.key==='Enter') openModal(el.dataset.id); });
     });
 
-    // Análisis
     document.getElementById('analysisBox').innerHTML = analysis;
 
-    // Curva de coste
     const maxQ = Math.max(...Object.values(stats.costDist), 1);
     document.getElementById('costChart').innerHTML = [0,1,2,3,4,5,6,7,8].map(i=>{
       const q=stats.costDist[i]||0;
@@ -370,7 +393,6 @@ async function init() {
       </div>`;
     }).join('');
 
-    // Colores
     const total=Object.values(stats.colorDist).reduce((s,v)=>s+v,0)||1;
     document.getElementById('colorChart').innerHTML = Object.entries(stats.colorDist)
       .sort((a,b)=>b[1]-a[1])
@@ -384,7 +406,6 @@ async function init() {
         </div>`;
       }).join('');
 
-    // Precio
     const totalParts = cards.reduce((acc,e)=>{
       const p=parseFloat(e.price)||0;
       if(p<1) acc.cheap++; else if(p<5) acc.mid++; else acc.exp++;
@@ -425,7 +446,6 @@ async function init() {
       return true;
     });
 
-    // Ordenar
     switch(S.expSort){
       case 'price_desc': S.expFiltered.sort((a,b)=>(parseFloat(b.price)||0)-(parseFloat(a.price)||0)); break;
       case 'price_asc':  S.expFiltered.sort((a,b)=>(parseFloat(a.price)||0)-(parseFloat(b.price)||0)); break;
@@ -498,7 +518,6 @@ async function init() {
 
     const wr = DeckAlgorithm.estimateWR(card);
     const wrCls = wr>=60?'hi': wr>=50?'mid':'low';
-    const colors = DeckAlgorithm.parseColors(card.color);
 
     document.getElementById('modalContent').innerHTML = `
       <button class="modal-close" id="modalClose" aria-label="Cerrar">✕</button>
@@ -606,7 +625,6 @@ async function init() {
      EVENTOS
   ────────────────────────────────────────── */
   function bindEvents() {
-    // Navegación
     document.querySelectorAll('.nav-btn[data-section]').forEach(btn=>{
       btn.addEventListener('click',()=>{
         showSection(btn.dataset.section);
@@ -617,14 +635,12 @@ async function init() {
       document.getElementById('mobileNav').classList.toggle('open');
     });
 
-    // Builder: búsqueda de líderes
     const ls = document.getElementById('leaderSearch');
     ls.addEventListener('input', ()=>{ S.leaderQ=ls.value; renderLeadersGrid(); });
     document.getElementById('clearLeader').addEventListener('click',()=>{
       ls.value=''; S.leaderQ=''; renderLeadersGrid();
     });
 
-    // Filtros de color
     document.querySelectorAll('.cfbtn').forEach(btn=>{
       btn.addEventListener('click',()=>{
         document.querySelectorAll('.cfbtn').forEach(b=>b.classList.remove('active'));
@@ -634,16 +650,12 @@ async function init() {
       });
     });
 
-    // Generar mazo
     document.getElementById('btnGenerate').addEventListener('click', generateDeck);
-
-    // Acciones del mazo
     document.getElementById('btnRegen').addEventListener('click', generateDeck);
     document.getElementById('btnCopy').addEventListener('click', copyList);
     document.getElementById('btnExportJSON').addEventListener('click', exportJSON);
     document.getElementById('btnExportTXT').addEventListener('click', exportTXT);
 
-    // Explorador
     let expTimeout;
     document.getElementById('expSearch').addEventListener('input', e=>{
       clearTimeout(expTimeout);
@@ -656,7 +668,6 @@ async function init() {
     document.getElementById('expSort').addEventListener('change', e=>{ S.expSort=e.target.value; applyExpFilters(); });
     document.getElementById('btnMore').addEventListener('click',()=>{ S.expPage++; renderExpGrid(false); });
 
-    // Modal ESC
     document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
   }
 

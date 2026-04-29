@@ -5,82 +5,62 @@ Generador de mazos inteligente para One Piece TCG.
 
 ---
 
-## 🚀 Subir a Netlify (2 minutos)
-
-### Opción A — Drag & Drop (sin GitHub, más rápido)
-
-1. Comprime esta carpeta entera como `.zip`
-2. Ve a **[app.netlify.com/drop](https://app.netlify.com/drop)**
-3. Arrastra el `.zip` a la página
-4. En ~30 segundos tendrás una URL pública: `https://xxx.netlify.app`
-
-### Opción B — GitHub (recomendado para TFG, con actualizaciones automáticas)
-
-```bash
-git init
-git add .
-git commit -m "Den Den Mushi — One Piece TCG Deck Builder"
-git remote add origin https://github.com/TU_USUARIO/den-den-mushi
-git push -u origin main
-```
-
-Luego en [app.netlify.com](https://app.netlify.com):
-- New site → Import from GitHub → selecciona el repo
-- Build command: *(vacío)*
-- Publish directory: `.`
-- Deploy!
-
-Cada `git push` actualiza el sitio automáticamente.
-
----
-
 ## 🗂 Estructura
 
 ```
 dendenmushi/
-├── index.html          # App completa (HTML semántico, accesible)
-├── netlify.toml        # Config de Netlify (caché, headers, SPA fallback)
+├── index.html          # App completa
+├── vercel.json         # Config de Vercel (caché, headers, SPA fallback)
 ├── README.md
 ├── css/
-│   └── style.css       # Todo el CSS
-└── js/
-    ├── cartas.js       # Base de datos: 3.330 cartas (generado desde cartas.json)
-    ├── algorithm.js    # Motor IA de construcción de mazos
-    └── app.js          # Controlador principal
+│   └── style.css
+├── js/
+│   ├── algorithm.js    # Motor IA de construcción de mazos
+│   └── app.js          # Controlador principal (carga cartas async)
+└── data/
+    └── cartas.json     # Base de datos: 3.330 cartas
 ```
 
----
-
-## 🧠 Cómo funciona el algoritmo IA
-
-El motor en `algorithm.js` ejecuta estos pasos:
-
-1. **Filtrado por color** — solo cartas compatibles con los colores del líder
-2. **Puntuación** por poder, contador, efectos (Rush, Blocker, Banish, Draw…), sinergia de subtipo y sinergia de palabras clave con el efecto del líder
-3. **Curva de coste** objetivo: apunta a la distribución 0:3 / 1:5 / 2:11 / 3:13 / 4:11 / 5:8 / 6:5 / 7:3 / 8:1
-4. **Garantía de defensas** — mínimo 8 cartas con contador
-5. **Ajuste fino** — exactamente 60 cartas, máx. 4 copias por carta
+> ⚠️ Ya **no existe** `js/cartas.js`. Las cartas se cargan desde `data/cartas.json`
+> de forma asíncrona al arrancar la app. Esto elimina el bloqueo inicial.
 
 ---
 
-## 💰 Precios
+## 🚀 Desplegar en Vercel
 
-Los precios provienen del campo `market_price` de tu `cartas.json`, scrapeado de CardMarket. El mazo muestra el precio total estimado en euros.
+### Opción A — GitHub (recomendado, actualizaciones automáticas)
+
+```bash
+git add .
+git commit -m "Migración a Vercel"
+git push
+```
+
+En [vercel.com](https://vercel.com):
+- New Project → Import Git Repository → selecciona el repo
+- Framework Preset: **Other**
+- Build Command: *(vacío)*
+- Output Directory: `.`
+- Deploy
+
+Cada `git push` actualiza el sitio automáticamente.
+
+### Opción B — Vercel CLI
+
+```bash
+npm i -g vercel
+vercel --prod
+```
 
 ---
 
 ## 🔄 Actualizar las cartas
 
-Si tienes un nuevo `cartas.json`:
-
-```bash
-python3 scripts/generate_cartas_js.py cartas.json
-```
-
-O ejecuta el fragmento Python que genera `js/cartas.js`:
+Si tienes un nuevo `cartas.json`, genera el archivo de datos con:
 
 ```python
 import json
+
 with open('cartas.json') as f:
     data = json.load(f)
 
@@ -103,12 +83,12 @@ slim = [{
     'price':    c.get('market_price'),
 } for c in data]
 
-out = 'const CARDS_DB=' + json.dumps(slim, ensure_ascii=False, separators=(',',':')) + ';'
-with open('js/cartas.js','w') as f:
-    f.write(out)
+with open('data/cartas.json', 'w', encoding='utf-8') as f:
+    json.dump(slim, f, ensure_ascii=False, separators=(',',':'))
+
 print(f'OK — {len(slim)} cartas')
 ```
 
 ---
 
-*One Piece TCG es propiedad de Eiichiro Oda, Bandai y Viz Media. Este proyecto es no oficial y sin fines de lucro.*
+*One Piece TCG es propiedad de Eiichiro Oda, Bandai y Viz Media. Proyecto no oficial sin fines de lucro.*

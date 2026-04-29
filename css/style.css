@@ -710,16 +710,3 @@ body {
   .deck-actions { gap:.5rem; }
   .btn-action, .btn-primary { font-size:.75rem; padding:.55rem 1rem; }
 }
-
-/* Hide loading elements */
-#loader-wrapper,
-#loading-overlay,
-.loading-screen,
-#loader,
-.loader,
-#loading {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
-}

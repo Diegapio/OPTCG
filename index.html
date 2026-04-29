@@ -8,8 +8,69 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Nunito:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="css/style.css"/>
+  <style>
+    /* ── Pantalla de carga ───────────────────── */
+    #loadingScreen {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: #07111f;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 1.2rem;
+      transition: opacity .4s ease;
+    }
+    #loadingScreen.fade-out { opacity: 0; pointer-events: none; }
+    .ls-skull {
+      font-size: 3rem;
+      animation: lsBob 1.2s ease-in-out infinite;
+    }
+    .ls-title {
+      font-family: 'Cinzel Decorative', serif;
+      color: #c9970a;
+      font-size: 1.1rem;
+      letter-spacing: .05em;
+    }
+    .ls-sub {
+      color: #7a9ab5;
+      font-size: .85rem;
+      font-family: 'Nunito', sans-serif;
+    }
+    .ls-bar {
+      width: 220px;
+      height: 4px;
+      background: #1a2a3a;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .ls-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #c9970a, #f0c040);
+      border-radius: 4px;
+      animation: lsBar 1.6s ease-in-out infinite;
+    }
+    @keyframes lsBob {
+      0%,100% { transform: translateY(0); }
+      50%      { transform: translateY(-8px); }
+    }
+    @keyframes lsBar {
+      0%   { width: 0%; margin-left: 0%; }
+      50%  { width: 60%; margin-left: 20%; }
+      100% { width: 0%; margin-left: 100%; }
+    }
+  </style>
 </head>
 <body>
+
+  <!-- Pantalla de carga (se oculta cuando el JSON termina de cargar) -->
+  <div id="loadingScreen" aria-live="polite" role="status">
+    <div class="ls-skull">☠</div>
+    <div class="ls-title">Den Den Mushi</div>
+    <div class="ls-sub">Cargando base de datos de cartas…</div>
+    <div class="ls-bar"><div class="ls-bar-fill"></div></div>
+  </div>
 
   <!-- Fondo animado -->
   <div class="ocean-bg" aria-hidden="true">
@@ -44,6 +105,8 @@
 
   <!-- SECCIÓN: BUILDER -->
   <section class="section active" id="section-builder">
+
+    <!-- Hero -->
     <div class="hero">
       <div class="hero-text">
         <p class="hero-eyebrow">✦ Inteligencia Artificial para One Piece TCG ✦</p>
@@ -58,10 +121,11 @@
       </div>
     </div>
 
+    <!-- Búsqueda de líderes -->
     <div class="container">
       <div class="section-header">
         <h2 class="section-title">Selecciona tu Líder</h2>
-        <p class="section-sub" id="dbInfo">Cargando base de datos…</p>
+        <p class="section-sub">3.330 cartas reales · 234 líderes disponibles · Datos actualizados 2026</p>
       </div>
 
       <div class="search-box">
@@ -85,6 +149,7 @@
       <div class="leaders-count" id="leadersCount"></div>
       <div class="leaders-grid" id="leadersGrid" role="list" aria-label="Líderes disponibles"></div>
 
+      <!-- Panel de generación -->
       <div class="gen-panel" id="genPanel" hidden>
         <div class="gen-header">
           <div class="gen-leader-info" id="genLeaderInfo"></div>
@@ -144,7 +209,7 @@
     <div class="container">
       <div class="section-header">
         <h2 class="section-title">Explorar Cartas</h2>
-        <p class="section-sub">Navega por todas las cartas con precios de CardMarket</p>
+        <p class="section-sub">Navega por las 3.330 cartas con precios de CardMarket en tiempo real</p>
       </div>
       <div class="exp-filters">
         <input id="expSearch" type="search" placeholder="Buscar carta…" class="exp-input" aria-label="Buscar carta"/>
@@ -195,32 +260,32 @@
         <div class="about-card">
           <div class="about-icon">🧠</div>
           <h3>Algoritmo IA</h3>
-          <p>Motor propio que analiza compatibilidad de colores, curva de coste óptima, contadores mínimos y sinergias por palabras clave (Rush, Blocker, Banish, DON!!…).</p>
+          <p>Motor propio que analiza compatibilidad de colores, curva de coste óptima (la "regla 4-2"), contadores mínimos y sinergias por palabras clave (Rush, Blocker, Banish, DON!!…).</p>
         </div>
         <div class="about-card">
           <div class="about-icon">🃏</div>
           <h3>Base de datos real</h3>
-          <p>Cartas de OP-01 a OP-15 + Extra Boosters y Promos. Datos con precios de mercado de CardMarket actualizados.</p>
+          <p>3.330 cartas de OP-01 a OP-15 + Extra Boosters y Promos. Datos scrapeados directamente de CardMarket con precios de mercado actualizados.</p>
         </div>
         <div class="about-card">
           <div class="about-icon">💰</div>
           <h3>Precios CardMarket</h3>
-          <p>Cada carta muestra su precio de mercado. El mazo generado calcula el coste total estimado.</p>
+          <p>Cada carta muestra su precio de mercado. El mazo generado calcula el coste total estimado para que sepas cuánto te costará construirlo.</p>
         </div>
         <div class="about-card">
           <div class="about-icon">📊</div>
           <h3>Win Rate estimado</h3>
-          <p>Score calculado algorítmicamente según poder, contador, efectos y sinergias.</p>
+          <p>Score calculado algorítmicamente según poder, contador, efectos y sinergias. Permite comparar qué cartas aportan más valor al mazo.</p>
         </div>
         <div class="about-card">
           <div class="about-icon">🚀</div>
           <h3>100% estático</h3>
-          <p>Sin backend, sin servidor propio. HTML + CSS + JS puro. Gratuito, sin login.</p>
+          <p>Sin backend, sin servidor propio. HTML + CSS + JS puro desplegado en Vercel. Gratuito para siempre, sin login, accesible para cualquier usuario.</p>
         </div>
         <div class="about-card">
           <div class="about-icon">🎓</div>
           <h3>Proyecto TFG</h3>
-          <p>Desarrollado como Trabajo de Fin de Grado. Combina APIs, algoritmos de optimización y UX.</p>
+          <p>Desarrollado como Trabajo de Fin de Grado. Combina consumo de APIs, algoritmos de optimización y diseño de experiencia de usuario.</p>
         </div>
       </div>
     </div>
@@ -235,15 +300,7 @@
   <!-- TOAST -->
   <div class="toast" id="toast" role="alert" aria-live="polite" hidden></div>
 
-  <!-- PANTALLA DE CARGA -->
-  <div id="appLoader">
-    <div class="loader-skull">☠</div>
-    <div class="loader-text">Cargando cartas…</div>
-    <div class="loader-bar-wrap">
-      <div id="loaderBar" class="loader-bar-fill"></div>
-    </div>
-  </div>
-
+  <!-- Scripts: algorithm primero, luego app (ya no hay cartas.js) -->
   <script src="js/algorithm.js"></script>
   <script src="js/app.js"></script>
 </body>

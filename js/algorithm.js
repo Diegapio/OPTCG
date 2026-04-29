@@ -10,7 +10,7 @@ const DeckAlgorithm = (() => {
   const MAX_COPIES = 4;
 
   // Distribución objetivo de costes (suma = 60 cartas aprox)
-  const CURVE = { 0:3, 1:5, 2:10, 3:13, 4:12, 5:8, 6:5, 7:3, 8:1 };
+  const CURVE = { 0:3, 1:5, 2:11, 3:13, 4:11, 5:8, 6:5, 7:3, 8:1 };
 
   /* ─────────────────────────────────────────────
      Punto de entrada principal
