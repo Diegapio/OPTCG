@@ -105,7 +105,8 @@
   async function loadCards() {
     showLoadingScreen();
     try {
-      const resp = await fetch('/data/cartas.json');
+      const base = location.pathname.split('/').slice(0,2).join('/');
+      const resp = await fetch(base + '/data/cartas.json');
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const data = await resp.json();
       window.CARDS_DB = data;
