@@ -28,10 +28,15 @@ const DeckAlgorithm = (() => {
     );
 
     const compatible = pool.filter(c => isCompatible(c, leaderColors));
+    // Shuffle pool so tie-breaking is different each run
+    for (let i = compatible.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [compatible[i], compatible[j]] = [compatible[j], compatible[i]];
+    }
 
     const scored = compatible.map(c => ({
       ...c,
-      _score: scoreCard(c, leader, leaderColors, leaderEffect, synergyProfile),
+      _score: scoreCard(c, leader, leaderColors, leaderEffect, synergyProfile) + (Math.random() * 8),
       _wr:    estimateWR(c)
     }));
     scored.sort((a, b) => b._score - a._score);

@@ -293,7 +293,10 @@
     }
     slider.addEventListener('input',updateSlider);
     updateSlider();
-    document.getElementById('btnRegen').addEventListener('click',generateDeck);
+    document.getElementById('btnRegen').addEventListener('click',()=>{
+    toast('🎲 Generando variante diferente…');
+    generateDeck();
+  });
     document.getElementById('btnCopy').addEventListener('click',copyList);
     document.getElementById('btnExportJSON').addEventListener('click',exportJSON);
     document.getElementById('btnExportTXT').addEventListener('click',exportTXT);
