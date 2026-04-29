@@ -86,11 +86,12 @@
     el._t = setTimeout(()=>{ el.hidden=true; }, ms);
   }
 
-  /* ── Pantalla de carga ───────────────────── */
+  /* ── Pantalla de carga ─────────────────────
   function showLoadingScreen() {
     const el = document.getElementById('loadingScreen');
     if (el) el.hidden = false;
   }
+     */
 
   function hideLoadingScreen() {
     const el = document.getElementById('loadingScreen');
