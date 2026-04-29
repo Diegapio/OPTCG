@@ -6,7 +6,7 @@
 (() => {
   const S = {
     leaders:[], allCards:[], selectedLeader:null, currentDeck:null, cardsReady:false,
-    leaderQ:'', colorF:'',
+    leaderQ:'', colorF:'', budget:0,
     expQ:'', expType:'', expColor:'', expSet:'', expSort:'name',
     expPage:0, expPageSz:48, expFiltered:[],
   };
@@ -156,7 +156,7 @@
     [0,1,2,3,4].forEach((s,i)=>setTimeout(()=>{for(let j=0;j<s;j++)setStep(j,'done');setStep(s,'active');document.getElementById('pbarFill').style.width=pcts[i]+'%';},delays[i]));
     await sleep(380);
     let result;
-    try{result=DeckAlgorithm.buildDeck(S.selectedLeader);}
+    try{result=DeckAlgorithm.buildDeck(S.selectedLeader, S.budget===0?Infinity:S.budget);}
     catch(err){console.error(err);toast('❌ Error al generar el mazo');btn.disabled=false;return;}
     S.currentDeck=result;
     await sleep(1300);for(let j=0;j<5;j++)setStep(j,'done');await sleep(250);
@@ -279,6 +279,20 @@
     document.getElementById('clearLeader').addEventListener('click',()=>{ls.value='';S.leaderQ='';renderLeadersGrid();});
     document.querySelectorAll('.cfbtn').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.cfbtn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');S.colorF=btn.dataset.color;renderLeadersGrid();}));
     document.getElementById('btnGenerate').addEventListener('click',generateDeck);
+
+    // Budget slider
+    const slider=document.getElementById('budgetSlider');
+    const budgetVal=document.getElementById('budgetVal');
+    function updateSlider(){
+      const v=parseInt(slider.value)||0;
+      S.budget=v;
+      budgetVal.textContent=v===0?'Sin límite':v+'€';
+      // Update track fill
+      const pct=(v/500)*100;
+      slider.style.background=`linear-gradient(to right,var(--gold) ${pct}%,rgba(255,255,255,.1) ${pct}%)`;
+    }
+    slider.addEventListener('input',updateSlider);
+    updateSlider();
     document.getElementById('btnRegen').addEventListener('click',generateDeck);
     document.getElementById('btnCopy').addEventListener('click',copyList);
     document.getElementById('btnExportJSON').addEventListener('click',exportJSON);

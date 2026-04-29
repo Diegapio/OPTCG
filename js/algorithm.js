@@ -1,35 +1,26 @@
 /**
  * algorithm.js
  * Motor IA de construcción de mazos para One Piece TCG
- * Usa el schema real: { id, name, type, color, cost, power, counter, effect, price, … }
+ * Acepta un presupuesto máximo opcional en buildDeck({ leader, budget })
  */
 
 const DeckAlgorithm = (() => {
 
   const DECK_SIZE  = 60;
   const MAX_COPIES = 4;
-
-  // Distribución objetivo de costes (suma = 60 cartas aprox)
   const CURVE = { 0:3, 1:5, 2:11, 3:13, 4:11, 5:8, 6:5, 7:3, 8:1 };
 
-  /* ─────────────────────────────────────────────
-     Punto de entrada principal
-  ───────────────────────────────────────────── */
-  function buildDeck(leader) {
+  /* ─── Punto de entrada ─── */
+  function buildDeck(leader, budget = Infinity) {
     const leaderColors = parseColors(leader.color);
     const leaderEffect = (leader.effect || '').toLowerCase();
 
-    // Pool jugable: sin líderes, sin Don!!
     const pool = CARDS_DB.filter(c =>
-      c.type !== 'Leader' &&
-      c.type !== 'DON!!' &&
-      c.id   !== leader.id
+      c.type !== 'Leader' && c.type !== 'DON!!' && c.id !== leader.id
     );
 
-    // 1) Filtrar por compatibilidad de color
     const compatible = pool.filter(c => isCompatible(c, leaderColors));
 
-    // 2) Puntuar
     const scored = compatible.map(c => ({
       ...c,
       _score: scoreCard(c, leader, leaderColors, leaderEffect),
@@ -37,24 +28,18 @@ const DeckAlgorithm = (() => {
     }));
     scored.sort((a, b) => b._score - a._score);
 
-    // 3) Construir con curva
-    const deck = buildWithCurve(scored, leaderColors, leaderEffect);
+    const deck = buildWithCurve(scored, leaderColors, leaderEffect, budget);
 
-    // 4) Stats y análisis
     const stats    = computeStats(deck, leader);
-    const analysis = generateAnalysis(deck, leader, leaderColors, stats);
+    const analysis = generateAnalysis(deck, leader, leaderColors, stats, budget);
 
     return { cards: deck, stats, analysis };
   }
 
-  /* ─────────────────────────────────────────────
-     Helpers de color
-  ───────────────────────────────────────────── */
+  /* ─── Colores ─── */
   function parseColors(raw = '') {
-    // "Blue Purple" → ["Blue","Purple"]
     return raw.trim().split(/\s+/).filter(Boolean);
   }
-
   function isCompatible(card, leaderColors) {
     const cardColors = parseColors(card.color);
     return cardColors.some(cc =>
@@ -62,9 +47,7 @@ const DeckAlgorithm = (() => {
     );
   }
 
-  /* ─────────────────────────────────────────────
-     Puntuación de carta
-  ───────────────────────────────────────────── */
+  /* ─── Puntuación ─── */
   function scoreCard(card, leader, leaderColors, leaderEffect) {
     let score = 0;
     const eff     = (card.effect || '').toLowerCase();
@@ -72,54 +55,34 @@ const DeckAlgorithm = (() => {
     const power   = parseInt(card.power)   || 0;
     const counter = parseInt(card.counter) || 0;
 
-    // Eficiencia poder/coste
     if (cost > 0) score += (power / cost) * 0.0015;
-
-    // Poder absoluto
     if      (power >= 10000) score += 18;
     else if (power >= 8000)  score += 13;
     else if (power >= 6000)  score += 8;
     else if (power >= 4000)  score += 4;
     else if (power >= 2000)  score += 1;
-
-    // Contador (defensa)
     if      (counter >= 2000) score += 14;
     else if (counter >= 1000) score += 8;
 
-    // Efectos clave
     const FX = {
-      'blocker':  10, 'rush':     9,  'banish':   9,
-      'draw':     8,  'search':   7,  'trigger':  7,
-      'on play':  5,  'don!!':    6,  'trash':    4,
-      'attach':   4,  'counter':  3,  'k.o.':     8,
-      'activate': 4,
+      'blocker':10,'rush':9,'banish':9,'draw':8,'search':7,'trigger':7,
+      'on play':5,'don!!':6,'trash':4,'attach':4,'counter':3,'k.o.':8,'activate':4,
     };
     for (const [kw, pts] of Object.entries(FX)) {
       if (eff.includes(kw)) score += pts;
     }
 
-    // Sinergia de subtipo con el líder
     const leaderSubs = (leader.sub_types || '').toLowerCase();
     const cardSubs   = (card.sub_types   || '').toLowerCase();
-    const subWords = leaderSubs.split(/\s+/);
-    for (const w of subWords) {
+    for (const w of leaderSubs.split(/\s+/)) {
       if (w.length > 3 && cardSubs.includes(w)) score += 6;
     }
 
-    // Sinergia de palabras clave entre líder y carta
     score += synergy(eff, leaderEffect) * 14;
-
-    // Zona de coste óptima
     if (cost >= 2 && cost <= 4) score += 4;
-
-    // Color principal del líder = bonus
     const mainColor = (leaderColors[0] || '').toLowerCase();
     if (parseColors(card.color)[0]?.toLowerCase() === mainColor) score += 3;
-
-    // Penalizar cartas muy caras sin efecto de alto impacto
     if (cost >= 7 && !eff.match(/banish|k\.o\.|draw|rush/)) score -= 8;
-
-    // Win rate
     score += estimateWR(card) * 0.18;
 
     return score;
@@ -136,20 +99,17 @@ const DeckAlgorithm = (() => {
     return Math.min(1, s);
   }
 
-  /* ─────────────────────────────────────────────
-     Win Rate estimado
-  ───────────────────────────────────────────── */
+  /* ─── Win Rate ─── */
   function estimateWR(card) {
     let s = 50;
     const power   = parseInt(card.power)   || 0;
     const counter = parseInt(card.counter) || 0;
     const cost    = parseInt(card.cost)    || 0;
     const eff     = (card.effect || '').toLowerCase();
-
-    if (power >= 9000)  s += 12;
-    else if (power >= 7000) s += 7;
-    if (counter >= 2000) s += 9;
-    else if (counter >= 1000) s += 5;
+    if (power >= 9000)       s += 12;
+    else if (power >= 7000)  s += 7;
+    if (counter >= 2000)     s += 9;
+    else if (counter >= 1000)s += 5;
     if (cost <= 3 && power >= 4000) s += 6;
     if (eff.includes('don!!'))   s += 6;
     if (eff.includes('blocker')) s += 5;
@@ -158,60 +118,86 @@ const DeckAlgorithm = (() => {
     if (eff.includes('draw'))    s += 5;
     if (eff.includes('search'))  s += 4;
     if (eff.includes('trigger')) s += 4;
-    // Pequeña varianza reproducible basada en el id
     const hash = (card.id || '').split('').reduce((a,c) => a + c.charCodeAt(0), 0);
     s += ((hash % 7) - 3);
     return Math.min(76, Math.max(34, Math.round(s)));
   }
 
-  /* ─────────────────────────────────────────────
-     Construcción con curva de coste
-  ───────────────────────────────────────────── */
-  function buildWithCurve(scored, leaderColors, leaderEffect) {
+  /* ─── Construcción con curva y presupuesto ─── */
+  function buildWithCurve(scored, leaderColors, leaderEffect, budget) {
     const deck  = [];
     const used  = new Set();
     let   total = 0;
+    let   spent = 0;
 
-    // Paso 1: garantizar ~10 contadores (defensas)
-    const counterCards = scored.filter(c => parseInt(c.counter) >= 1000);
-    for (const c of counterCards) {
-      if (total >= DECK_SIZE) break;
-      const qty = Math.min(MAX_COPIES, DECK_SIZE - total);
-      addEntry(deck, used, c, qty);
-      total += qty;
-      if (total >= 14) break; // techo de contadores
+    // Precio máximo por carta individual = budget / 10 (evita una carta que se coma todo)
+    const maxCardPrice = budget < Infinity ? budget / 10 : Infinity;
+
+    // Filtrar candidatos que no excedan el precio por carta
+    const affordable = c => {
+      const p = parseFloat(c.price) || 0;
+      return p <= maxCardPrice;
+    };
+
+    // Intentar añadir una entrada respetando el presupuesto total
+    function tryAdd(card, qty) {
+      const p = parseFloat(card.price) || 0;
+      let canAdd = qty;
+      // Reducir cantidad si nos pasamos del presupuesto
+      while (canAdd > 0 && spent + p * canAdd > budget) canAdd--;
+      if (canAdd <= 0) return 0;
+      addEntry(deck, used, card, canAdd);
+      total += canAdd;
+      spent += p * canAdd;
+      return canAdd;
     }
 
-    // Paso 2: rellenar por banda de coste
+    // Paso 1: contadores
+    const counterCards = scored.filter(c => parseInt(c.counter) >= 1000 && affordable(c));
+    for (const c of counterCards) {
+      if (total >= DECK_SIZE) break;
+      tryAdd(c, Math.min(MAX_COPIES, DECK_SIZE - total));
+      if (total >= 14) break;
+    }
+
+    // Paso 2: curva de coste
     for (const [costStr, target] of Object.entries(CURVE)) {
       const cost = parseInt(costStr);
-      const already = deck.filter(e => parseInt(e.cost) === cost)
-                          .reduce((s,e) => s + e._qty, 0);
+      const already = deck.filter(e => parseInt(e.cost) === cost).reduce((s,e) => s + e._qty, 0);
       const needed = Math.max(0, target - already);
       if (!needed) continue;
-
-      const candidates = scored.filter(c =>
-        parseInt(c.cost) === cost && !used.has(c.id)
-      );
+      const candidates = scored.filter(c => parseInt(c.cost) === cost && !used.has(c.id) && affordable(c));
       let added = 0;
       for (const c of candidates) {
         if (added >= needed || total >= DECK_SIZE) break;
         const qty = Math.min(MAX_COPIES, needed - added, DECK_SIZE - total);
-        if (qty > 0) { addEntry(deck, used, c, qty); total += qty; added += qty; }
+        if (qty > 0) {
+          const got = tryAdd(c, qty);
+          added += got;
+        }
       }
     }
 
-    // Paso 3: rellenar resto con mejores disponibles
+    // Paso 3: rellenar resto
     if (total < DECK_SIZE) {
-      const rest = scored.filter(c => !used.has(c.id));
+      const rest = scored.filter(c => !used.has(c.id) && affordable(c));
       for (const c of rest) {
         if (total >= DECK_SIZE) break;
-        const qty = Math.min(MAX_COPIES, DECK_SIZE - total);
-        addEntry(deck, used, c, qty); total += qty;
+        tryAdd(c, Math.min(MAX_COPIES, DECK_SIZE - total));
       }
     }
 
-    // Paso 4: recortar si nos pasamos
+    // Paso 3b: si con presupuesto no llegamos a 60, rellenar con las más baratas posibles
+    if (total < DECK_SIZE) {
+      const cheap = scored
+        .filter(c => !used.has(c.id))
+        .sort((a,b) => (parseFloat(a.price)||0) - (parseFloat(b.price)||0));
+      for (const c of cheap) {
+        if (total >= DECK_SIZE) break;
+        tryAdd(c, Math.min(MAX_COPIES, DECK_SIZE - total));
+      }
+    }
+
     trim(deck);
     return deck;
   }
@@ -220,7 +206,6 @@ const DeckAlgorithm = (() => {
     deck.push({ ...card, _qty: qty });
     used.add(card.id);
   }
-
   function trim(deck) {
     let total = deck.reduce((s,e) => s + e._qty, 0);
     let i = deck.length - 1;
@@ -232,23 +217,14 @@ const DeckAlgorithm = (() => {
     }
   }
 
-  /* ─────────────────────────────────────────────
-     Estadísticas del mazo
-  ───────────────────────────────────────────── */
+  /* ─── Estadísticas ─── */
   function computeStats(deck, leader) {
-    const total   = deck.reduce((s,e) => s + e._qty, 0);
-    const avgCost = deck.reduce((s,e) => s + (parseInt(e.cost)||0)*e._qty, 0) / total;
-    const avgPow  = deck.reduce((s,e) => s + (parseInt(e.power)||0)*e._qty, 0) / total;
-    const counters= deck.filter(e => parseInt(e.counter)>=1000).reduce((s,e)=>s+e._qty,0);
-    const avgWR   = deck.reduce((s,e) => s + e._wr*e._qty, 0) / total;
-
-    // Precio total
-    const totalPrice = deck.reduce((s,e) => {
-      const p = parseFloat(e.price) || 0;
-      return s + p * e._qty;
-    }, 0);
-    const minPrice = deck.reduce((s,e)=>s+(parseFloat(e.price)||0)*e._qty,0); // mismos datos
-    const maxPrice = totalPrice; // sin rango distinto por ahora
+    const total    = deck.reduce((s,e) => s + e._qty, 0);
+    const avgCost  = deck.reduce((s,e) => s + (parseInt(e.cost)||0)*e._qty, 0) / total;
+    const avgPow   = deck.reduce((s,e) => s + (parseInt(e.power)||0)*e._qty, 0) / total;
+    const counters = deck.filter(e => parseInt(e.counter)>=1000).reduce((s,e)=>s+e._qty,0);
+    const avgWR    = deck.reduce((s,e) => s + e._wr*e._qty, 0) / total;
+    const totalPrice = deck.reduce((s,e) => s + (parseFloat(e.price)||0)*e._qty, 0);
 
     const costDist = {};
     for (let i=0;i<=9;i++) costDist[i]=0;
@@ -256,61 +232,41 @@ const DeckAlgorithm = (() => {
 
     const colorDist = {};
     deck.forEach(e=>{
-      parseColors(e.color).forEach(col=>{
-        colorDist[col]=(colorDist[col]||0)+e._qty;
-      });
+      parseColors(e.color).forEach(col=>{ colorDist[col]=(colorDist[col]||0)+e._qty; });
     });
 
     const types = {};
     deck.forEach(e=>{ types[e.type]=(types[e.type]||0)+e._qty; });
 
-    return {
-      total, avgCost:avgCost.toFixed(1),
-      avgPow: Math.round(avgPow),
-      counters, avgWR:Math.round(avgWR),
-      totalPrice, costDist, colorDist, types
-    };
+    return { total, avgCost:avgCost.toFixed(1), avgPow:Math.round(avgPow), counters, avgWR:Math.round(avgWR), totalPrice, costDist, colorDist, types };
   }
 
-  /* ─────────────────────────────────────────────
-     Análisis textual
-  ───────────────────────────────────────────── */
-  function generateAnalysis(deck, leader, leaderColors, stats) {
-    const colorStr  = leaderColors.join('/');
-    const isMulti   = leaderColors.length > 1;
-    const avgC      = parseFloat(stats.avgCost);
-    const strategy  = getStrategy(leader, leaderColors);
+  /* ─── Análisis ─── */
+  function generateAnalysis(deck, leader, leaderColors, stats, budget) {
+    const colorStr = leaderColors.join('/');
+    const isMulti  = leaderColors.length > 1;
+    const avgC     = parseFloat(stats.avgCost);
+    const strategy = getStrategy(leader, leaderColors);
 
     let t = '';
     t += `<strong>Líder:</strong> ${leader.name}<br/>`;
-    t += `<strong>Color:</strong> ${colorStr}${isMulti?' (Multicolor)':''}<br/><br/>`;
-    t += `<strong>Estrategia:</strong> ${strategy}<br/><br/>`;
+    t += `<strong>Color:</strong> ${colorStr}${isMulti?' (Multicolor)':''}<br/>`;
+    if (budget < Infinity) t += `<strong>Presupuesto:</strong> máx. ${budget}€<br/>`;
+    t += `<br/><strong>Estrategia:</strong> ${strategy}<br/><br/>`;
 
-    if (avgC <= 3) {
-      t += `<strong>Ritmo:</strong> Mazo <em>agresivo</em>. Coste medio de ${stats.avgCost} — aplastas con presión constante desde el turno 1.`;
-    } else if (avgC <= 4.5) {
-      t += `<strong>Ritmo:</strong> Mazo <em>equilibrado</em>. Coste medio de ${stats.avgCost} — combinas apertura agresiva con jugadas de mediados de partida.`;
-    } else {
-      t += `<strong>Ritmo:</strong> Mazo de <em>control</em>. Coste medio de ${stats.avgCost} — aguantas con bloqueos y aplastas en late-game.`;
-    }
+    if (avgC <= 3)        t += `<strong>Ritmo:</strong> Mazo <em>agresivo</em>. Coste medio ${stats.avgCost} — presión constante desde el turno 1.`;
+    else if (avgC <= 4.5) t += `<strong>Ritmo:</strong> Mazo <em>equilibrado</em>. Coste medio ${stats.avgCost} — combinas apertura y mid-game.`;
+    else                  t += `<strong>Ritmo:</strong> Mazo de <em>control</em>. Coste medio ${stats.avgCost} — aguantas y aplastas en late-game.`;
 
     t += `<br/><br/><strong>Defensa:</strong> ${stats.counters} cartas con contador incluidas.`;
-    if (stats.counters < 8) t += ` <em>(Considera añadir más contadores para mayor seguridad.)</em>`;
-
+    if (stats.counters < 8) t += ` <em>(Considera añadir más contadores.)</em>`;
     t += `<br/><br/><strong>Win Rate estimado:</strong> ${stats.avgWR}% — basado en poder, efectos y sinergias.`;
-
-    if (isMulti) {
-      t += `<br/><br/><strong>Multicolor:</strong> El acceso a ${colorStr} te da versatilidad única frente a mazos monocolor.`;
-    }
+    if (isMulti) t += `<br/><br/><strong>Multicolor:</strong> El acceso a ${colorStr} te da versatilidad única frente a mazos monocolor.`;
 
     const byType = stats.types;
     if (byType) {
-      const chars  = byType['Character'] || 0;
-      const events = byType['Event']     || 0;
-      const stages = byType['Stage']     || 0;
-      t += `<br/><br/><strong>Composición:</strong> ${chars} personajes · ${events} eventos · ${stages} escenarios.`;
+      t += `<br/><br/><strong>Composición:</strong> ${byType['Character']||0} personajes · ${byType['Event']||0} eventos · ${byType['Stage']||0} escenarios.`;
     }
-
     return t;
   }
 
@@ -326,11 +282,7 @@ const DeckAlgorithm = (() => {
     return 'Equilibrado — adapta tu juego a la situación usando todas las sinergias del mazo';
   }
 
-  /* ─────────────────────────────────────────────
-     Exposición pública
-  ───────────────────────────────────────────── */
   return { buildDeck, estimateWR, parseColors };
-
 })();
 
 window.DeckAlgorithm = DeckAlgorithm;
