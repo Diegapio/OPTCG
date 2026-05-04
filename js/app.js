@@ -189,6 +189,9 @@
     document.getElementById('priceBox').innerHTML=`<div class="price-total">${stats.totalPrice.toFixed(2)}€</div><div class="price-sub">Precio total estimado (CardMarket)</div><div class="price-range" style="margin-top:.6rem;">🟢 <1€: ${parts.cheap} &nbsp;|&nbsp; 🟡 1-5€: ${parts.mid} &nbsp;|&nbsp; 🔴 >5€: ${parts.exp}</div>`;
     document.getElementById('deckResult').hidden=false;
     document.getElementById('deckResult').scrollIntoView({behavior:'smooth'});
+    bindRefineEvents();
+    // Reset chat on new deck
+    const rm=document.getElementById('refineMessages');if(rm){rm.innerHTML='<div class="refine-msg assistant">Mazo generado. Dime qué quieres ajustar — ratio de eventos, subtipos, presupuesto, curva de coste…</div>';}
   }
 
   /* ── Explorador ── */
@@ -311,4 +314,117 @@
   }
 
   if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',init);}else{init();}
+
+  /* ──────────────────────────────────────────
+     CHAT DE REFINAMIENTO IA
+  ────────────────────────────────────────── */
+  function addRefineMsg(text, role) {
+    const box = document.getElementById('refineMessages');
+    const div = document.createElement('div');
+    div.className = 'refine-msg ' + role;
+    div.innerHTML = text;
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+    return div;
+  }
+
+  function buildDeckContext() {
+    if (!S.currentDeck || !S.selectedLeader) return '';
+    const leader = S.selectedLeader;
+    const cards  = S.currentDeck.cards;
+    const stats  = S.currentDeck.stats;
+    const list   = cards
+      .sort((a,b) => (parseInt(a.cost)||0)-(parseInt(b.cost)||0))
+      .map(c => `${c._qty}x ${c.name} [${c.id}] — ${c.type}, coste ${c.cost||0}, poder ${c.power||0}${c.counter?', contador +'+c.counter:''}, subtipo: ${c.sub_types||'—'}`)
+      .join('\n');
+
+    return `LÍDER: ${leader.name} [${leader.id}]
+Color: ${leader.color}
+Subtipo: ${leader.sub_types||'—'}
+Vida: ${leader.life||'—'}
+Efecto del líder: ${leader.effect||'—'}
+
+MAZO ACTUAL (${stats.total} cartas):
+${list}
+
+ESTADÍSTICAS:
+- Personajes: ${stats.types['Character']||0}
+- Eventos: ${stats.types['Event']||0}
+- Escenarios: ${stats.types['Stage']||0}
+- Coste medio: ${stats.avgCost}
+- Contadores: ${stats.counters}
+- Precio total: ${stats.totalPrice.toFixed(2)}€`;
+  }
+
+  async function sendRefineMessage() {
+    const input = document.getElementById('refineInput');
+    const btn   = document.getElementById('btnRefineSend');
+    const msg   = input.value.trim();
+    if (!msg || !S.currentDeck) return;
+
+    input.value = '';
+    btn.disabled = true;
+    addRefineMsg(esc(msg), 'user');
+    const thinking = addRefineMsg('Analizando el mazo…', 'thinking');
+
+    const systemPrompt = `Eres un asistente experto en One Piece TCG que ayuda a refinar mazos de cartas.
+El usuario te mostrará su mazo actual y te pedirá ajustes o mejoras.
+Responde siempre en español, de forma concisa y útil (máximo 4-5 frases).
+Explica qué cambiarías y por qué, siendo específico con los nombres de cartas o tipos cuando puedas.
+No generes listas largas — da consejos prácticos y directos.
+Si el usuario pide un cambio concreto (más eventos, menos personajes, etc.), explica cómo afectaría al mazo y si es viable con el líder elegido.`;
+
+    const userMsg = `Mi mazo actual:
+
+${buildDeckContext()}
+
+Mi pregunta o petición: ${msg}`;
+
+    try {
+      if (typeof GEMINI_API_KEY === 'undefined' || !GEMINI_API_KEY) {
+        thinking.remove();
+        addRefineMsg('⚠️ No se ha configurado la API key de Gemini. Crea el archivo <code>js/secrets.js</code> con tu key.', 'assistant');
+        btn.disabled = false;
+        return;
+      }
+
+      const resp = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{ text: systemPrompt + '\n\n' + userMsg }]
+            }],
+            generationConfig: { maxOutputTokens: 800, temperature: 0.7 }
+          })
+        }
+      );
+
+      const data = await resp.json();
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      thinking.remove();
+      if (text) {
+        addRefineMsg(text.replace(/\n/g, '<br/>'), 'assistant');
+      } else {
+        addRefineMsg('No he podido generar una respuesta. Inténtalo de nuevo.', 'assistant');
+      }
+    } catch (err) {
+      thinking.remove();
+      addRefineMsg('Error al conectar con Gemini. Comprueba tu conexión e inténtalo de nuevo.', 'assistant');
+    }
+
+    btn.disabled = false;
+  }
+
+  // Bind refine events (called after cards load)
+  function bindRefineEvents() {
+    const btn   = document.getElementById('btnRefineSend');
+    const input = document.getElementById('refineInput');
+    if (!btn || !input) return;
+    btn.addEventListener('click', sendRefineMessage);
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') sendRefineMessage(); });
+  }
+
 })();
